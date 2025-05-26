@@ -1,0 +1,326 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08RWN1LPFZ",
+          "mode": "list",
+          "cachedResultName": "notify-message"
+        },
+        "text": "=New Email Received Header  \nSender: {{ $json.output_json['Room link'] }} \nReceiver:{{ $json.output_json['Email receiver'] }}\nContent: \n{{ $json.output_json['Email content'] }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1300,
+        0
+      ],
+      "id": "29292c73-e823-478a-8f72-cff34de1abfe",
+      "name": "Slack",
+      "webhookId": "d1289081-f09d-49e6-b2a9-af7cc7182f56",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "jFGzBdRyOfvJZy5C",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        700,
+        280
+      ],
+      "id": "dcc00087-9207-4566-8717-7e4906e9a7e2",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YftSL7shTvFaRPCF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract JSON from the AI output\nconst string_json = $json.output || '';\nconst json_match = String(string_json).match(/```json\\s*([\\s\\S]*?)\\s*```/);\n$json.output_json = json_match ? JSON.parse(json_match[1].trim()) : {};\ndelete $json.output;\n\nreturn $json;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        20
+      ],
+      "id": "2e722a4a-5b59-40a5-ac14-b7f18439b706",
+      "name": "Code6",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a data extraction assistant. Given HTML content as input, extract the following information and format it as JSON:\n\n{\n  \"Room link\": \"<extracted_link>\",\n  \"Email receiver\": \"{{ $json.to.value[0].address }}\",\n  \"Email content\": \"<extracted_customer_reply>\"\n}\n\nInstructions:\n1. \"Room link\": Extract the full URL from the first `<a>` tag with an `href` attribute that points to a room or venue listing on one of the following platforms:\n   - Airbnb (e.g., URLs matching \"airbnb.com/rooms\" like \"https://www.airbnb.com/rooms/1358724964618598340?...\").\n   - Zillow (e.g., URLs matching \"zillow.com/renter-hub\" or \"zillow.com/homes\" like \"https://www.zillow.com/renter-hub/inbox/9112853298335341277?...\").\n   - Furnished Finder (e.g., URLs matching \"furnishedfinder.com/property\" like \"https://www.furnishedfinder.com/property/553090_1\").\n   If no matching URL is found, return an empty string.\n3. \"Email content\": Extract the customer's reply message from the HTML. Look for `<p>`, `<div>`, or other tags containing the customer's response, typically within a message thread or reply section. Exclude headers, footers, signatures, or automated text (e.g., booking confirmations). If no customer reply is found, return an empty string. Preserve basic formatting (e.g., newlines) but remove HTML tags.\n\nInput HTML:\n{{ $json.textAsHtml }}\nOutput the extracted information in the specified JSON format. If any field cannot be extracted, return an empty string for that field. Ensure the output is valid JSON.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        660,
+        20
+      ],
+      "id": "f72e9cc4-9c0b-43e7-b6cc-f508eea912aa",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "simple": false,
+        "filters": {
+          "readStatus": "unread",
+          "sender": "@convo.zillow.com"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        0
+      ],
+      "id": "ad173e9d-fc68-4f73-a41d-bd2c208f6d53",
+      "name": "Gmail1",
+      "webhookId": "245adc40-6baa-495d-81be-41765a589aab",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Igdk6CLpy6VPEcmL",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "simple": false,
+        "filters": {
+          "readStatus": "unread",
+          "sender": " Airbnb RE:"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        160
+      ],
+      "id": "dd850bc6-e837-40d8-bee5-3c41183ca4ce",
+      "name": "Gmail",
+      "webhookId": "245adc40-6baa-495d-81be-41765a589aab",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Igdk6CLpy6VPEcmL",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        460,
+        40
+      ],
+      "id": "6fcda4af-b5a6-4945-a533-0ce09f5f7994",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 1,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -40,
+        20
+      ],
+      "id": "549ecdaa-79a6-41cb-82bc-4be133faeeaa",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Igdk6CLpy6VPEcmL",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        0
+      ],
+      "id": "9e1aa39f-b785-4675-bb89-c2e65469c3d9",
+      "name": "Gmail2",
+      "webhookId": "27767ff9-6dad-45c2-b08e-98c485ec953d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Igdk6CLpy6VPEcmL",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail1').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        180
+      ],
+      "id": "bb4d6731-8021-4e10-81f8-84f3843fb183",
+      "name": "Gmail3",
+      "webhookId": "27767ff9-6dad-45c2-b08e-98c485ec953d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Igdk6CLpy6VPEcmL",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Slack": {
+      "main": [
+        [
+          {
+            "node": "Gmail2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gmail3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code6": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2bd6ebea64a021fa193edc697a46050a9da715ddd5518b45ca7cd172f5dd729e"
+  }
+}

@@ -1,0 +1,328 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {}
+          ]
+        }
+      },
+      "id": "082bcd95-31d1-45e9-9f5d-7f7c6bc81f8d",
+      "name": "Check Reply",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://aimino.de/housesapi/send-message",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\"house_url\": \"{{ $node['Extract URL'].json.house_url }}\", \"message\": \"Hi, just following up on the house listing I sent. Are you interested?\"}"
+      },
+      "id": "8750d364-559e-4064-a386-13d3077226c4",
+      "name": "Send Follow-Up",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        260,
+        460
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://aimino.de/housesapi/send-message",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\"house_url\": \"{{ $node['Extract URL'].json.house_url }}\", \"message\": \"Thank you for your reply! Let me know how I can assist you further.\"}"
+      },
+      "id": "18545984-6d10-42e6-ad94-098b379b4693",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        240,
+        700
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "channel": "notifications",
+        "text": "{{ $node['Check Reply'].json['true'] ? 'User replied to house listing: ' + $node['Extract URL'].json.house_url : 'Follow-up sent for house listing: ' + $node['Extract URL'].json.house_url }}",
+        "otherOptions": {},
+        "attachments": []
+      },
+      "id": "91d6a522-c416-448f-ae4b-2291941d0016",
+      "name": "Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        720,
+        540
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "jFGzBdRyOfvJZy5C",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -940,
+        580
+      ],
+      "id": "7b727a7b-29d7-40e0-9c95-c4fab4ae9440",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1VF2OD700xD_mVML_cwKjk4_biGphB1kicOkVu4X3Tlc/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1090471914,
+          "mode": "list",
+          "cachedResultName": "New Venue",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VF2OD700xD_mVML_cwKjk4_biGphB1kicOkVu4X3Tlc/edit#gid=1090471914"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "headerRow": 4,
+              "firstDataRow": 5
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -720,
+        560
+      ],
+      "id": "20957827-f9c5-4cb7-8829-368205b7c97f",
+      "name": "Google Sheets5",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "m0FT3RYyByBWA4FU",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://aimino.de/housesapi/send-message",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "house_url",
+              "value": "={{ $json['Venue link'] }}"
+            },
+            {
+              "name": "message",
+              "value": "=hi"
+            }
+          ]
+        }
+      },
+      "id": "92a04dea-0425-463a-806e-d4842422d708",
+      "name": "Send Follow-Up1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        540
+      ],
+      "retryOnFail": false,
+      "maxTries": 5,
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6893c53e-c1ff-4417-8123-5ebcec6c8886",
+              "leftValue": "={{ $json.Message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "25fe7d0e-4105-4856-a57d-431ab8d03b1b",
+              "leftValue": "={{ $json.Source }}",
+              "rightValue": "Zillow",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "f7dfff5c-3713-4de4-be56-0ccc0b803d83",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -540,
+        560
+      ],
+      "id": "9be2748a-f20d-4140-bae5-49f54d6d3e35",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "sender": "@convo.zillow.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -120,
+        1660
+      ],
+      "id": "f28da5f0-ca61-4056-a7b3-9fcdcf750ec6",
+      "name": "Gmail",
+      "webhookId": "74ff57f5-96e0-4838-9e4a-d83312075927",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O521uqluvkabUpuw",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Check Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-Up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-Up": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets5": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-Up1": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        []
+      ]
+    },
+    "Gmail": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2bd6ebea64a021fa193edc697a46050a9da715ddd5518b45ca7cd172f5dd729e"
+  }
+}
