@@ -1,0 +1,632 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://localhost:8080/api/v1/jobs",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n  \"name\": \"NYC Coffee Shops\",\n  \"keywords\": {{ JSON.stringify($json.Location.split(\",\").map(item => item.trim())) }},\n  \"lang\": \"en\",\n  \"zoom\": 14,\n  \"lat\": \"40.7128\",\n  \"lon\": \"-74.0060\",\n  \"fast_mode\": true,\n  \"radius\": 5000,\n  \"depth\": 100,\n  \"email\": false,\n  \"max_time\": 3600000000000,\n  \"proxies\": [\"proxy1.example.com:8080\"]\n} "
+      },
+      "name": "Create Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        3460
+      ],
+      "id": "804dabca-a6e4-4fff-afbf-ac6bb8cccb47",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:8080/api/v1/jobs/{{ $json.id }}",
+        "options": {}
+      },
+      "name": "Get Job Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        3440
+      ],
+      "id": "bc58b707-207d-4d79-92ef-52d0ac44b4af",
+      "retryOnFail": false,
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:8080/api/v1/jobs/{{ $json.ID }}/download",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "name": "Download CSV",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        300,
+        3440
+      ],
+      "id": "17393e44-d86b-4517-9ab5-35b02cccdd5c",
+      "retryOnFail": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.Status }}",
+              "value2": "ok"
+            }
+          ]
+        }
+      },
+      "name": "IF Status OK1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        520,
+        3460
+      ],
+      "id": "7edc3c46-042d-4119-8861-aa20a7055abf"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "name": "Wait 10s1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        440,
+        3720
+      ],
+      "id": "d3c812ad-594f-40ff-9ac6-17a28cb09bc0",
+      "webhookId": "214898eb-29ec-425b-ad03-f5adf0cdeb83"
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:8080/api/v1/jobs/{{ $json.ID }}",
+        "options": {}
+      },
+      "name": "Get Job Status1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        100,
+        3680
+      ],
+      "id": "76b25f2a-f4e5-420a-937c-613fcf442554",
+      "retryOnFail": false,
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        840,
+        3460
+      ],
+      "id": "517e8c58-d625-434a-9daa-38f525981df5",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.website }}",
+        "options": {}
+      },
+      "id": "b3f7b94a-f495-4eeb-83a3-a1c3562703c9",
+      "name": "Scrape Website2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1100,
+        3480
+      ],
+      "typeVersion": 4.2,
+      "notesInFlow": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Research the following company or website:\n{{ $json.data }}\n\nThe user has requested the following information: {{ $('Landing Page Url1').item.json.UserRequest }}\n\nReturn the results in json format with headers matching the {{ $('AI Header').item.json.output }}, find in document return json only:\n{\n\t\"email\": \"test@email\",\n\t\"phonenumber\": \"+123456\",\n    ....\n}\nand must have \"website\" field with exact website url :{{ $('Extract from File1').item.json.website }},\n\nIf a field cannot be found, return 'null' for that value.\nImportance note return Json only ",
+        "options": {}
+      },
+      "id": "12c682eb-294c-49e0-9793-e162611b9946",
+      "name": "AI company researcher1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1440,
+        3480
+      ],
+      "typeVersion": 1.6,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "formTitle": "Conversion Rate Optimizer",
+        "formDescription": "Enter Locations split by ,",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Location",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "UserRequest",
+              "fieldType": "textarea",
+              "placeholder": "Write your request like I want to extract email out of this website"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4833ba19-697d-4b63-97ae-53ae330191b5",
+      "name": "Landing Page Url1",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [
+        -680,
+        3480
+      ],
+      "webhookId": "633e96ff-1c48-46e9-852c-96e6e9421cd0",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "content": "                                                       Crawling URL Website\n",
+        "height": 680,
+        "width": 1100
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        3280
+      ],
+      "id": "4788f003-0155-4bf3-86c9-4bbe04722a1b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "      Input keyword\n",
+        "height": 280,
+        "width": 260
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        3380
+      ],
+      "id": "4872398f-7935-452b-83be-923c7a2ef708",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "                    Extract metadata web",
+        "height": 560,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        760,
+        3340
+      ],
+      "id": "45bc259c-cb2a-4bfe-a8ff-e6feba7ad323",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "                             Deep Research\n",
+        "height": 540,
+        "width": 580
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        3380
+      ],
+      "id": "cbf6f0e6-0f38-4705-b3eb-158da5c27677",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        3760
+      ],
+      "id": "9dec2eb4-6835-4465-9623-a8516ee09b54",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pyOBLz0aDvR3jA2m",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Loop over input items using index\n  // Get the json output from the last item, ensuring it exists\nconst string_json = $json.output || '';\n  \n  // Convert to string and clean up the format\n$json.output_json = JSON.parse(String(string_json)\n    .replace(\"```\", \"\")\n    .replace(\"json\", \"\")\n    .replace(\"```\", \"\"));\n\n\nreturn $json;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        3560
+      ],
+      "id": "c0e37810-497e-414d-b104-abbdeff6b08b",
+      "name": "Code",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a JSON response with header names with user request  {{ $('Landing Page Url1').item.json.UserRequest }}\nreturn only header csv row\nNo explaination",
+        "options": {}
+      },
+      "id": "ea8a5048-bf78-4771-a4e0-b4b9dd56d5f5",
+      "name": "AI Header",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        180,
+        2840
+      ],
+      "typeVersion": 1.6,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        320,
+        3100
+      ],
+      "id": "33178dfa-33b8-48b2-aefc-7f0aec6d31b3",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pyOBLz0aDvR3jA2m",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1200,
+        3160
+      ],
+      "id": "15a55e10-4352-4e24-abab-4f09b99c3eef",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        3780
+      ],
+      "id": "f24648c4-04d1-4ce0-87f7-68ed153777cd",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "mode": "combineBySql",
+        "query": "SELECT * FROM input1 LEFT JOIN input2 ON input1.output_json.website = input2.website"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        2520,
+        3640
+      ],
+      "id": "6652f99a-52f6-401a-a064-e293e0e7ab50",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d755b1c6-8d6a-458f-91a7-606c41b14d67",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Q3nTHFaGUQJTT8ob",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2720,
+        3620
+      ],
+      "id": "7220f4b2-d2c1-4630-9f44-eeaa0fb75bbe",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Q3nTHFaGUQJTT8ob",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Create Job": {
+      "main": [
+        [
+          {
+            "node": "Get Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Status": {
+      "main": [
+        [
+          {
+            "node": "Download CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download CSV": {
+      "main": [
+        [
+          {
+            "node": "IF Status OK1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Status OK1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 10s1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s1": {
+      "main": [
+        [
+          {
+            "node": "Get Job Status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Status1": {
+      "main": [
+        [
+          {
+            "node": "Download CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Scrape Website2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Website2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI company researcher1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Landing Page Url1": {
+      "main": [
+        [
+          {
+            "node": "Create Job",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI company researcher1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Header": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Header",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI company researcher1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2b4eb5b76ab67b7fd0a908e351cf4e6b2477558a80ac7ec4ce478adb312162a9"
+  }
+}
